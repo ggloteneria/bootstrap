@@ -1,44 +1,43 @@
 package ru.kata.spring.boot_security.demo.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.kata.spring.boot_security.demo.model.Role;
 import ru.kata.spring.boot_security.demo.model.User;
 import ru.kata.spring.boot_security.demo.repositories.UserRepository;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Objects;
 
 @Service
 public class UserServiceImpl implements UserService{
 
     private final UserRepository userRepository;
 
+    private final BCryptPasswordEncoder bCryptPasswordEncoder;
+
+
     @Autowired
-    public UserServiceImpl(UserRepository userRepository) {
+    public UserServiceImpl(UserRepository userRepository, BCryptPasswordEncoder bCryptPasswordEncoder) {
         this.userRepository = userRepository;
+        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
     }
 
     @Transactional
     @Override
     public void save(User user) {
+        user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
         userRepository.save(user);
     }
 
-    @Transactional
     @Override
     public List<User> getUsers() {
         return userRepository.findAll();
     }
 
-    @Transactional
     @Override
     public User findById(Long id) {
         return userRepository.findById(id).orElse(null);
@@ -46,8 +45,8 @@ public class UserServiceImpl implements UserService{
 
     @Transactional
     @Override
-    public void update(User userToUpdate) {
-        userToUpdate.setId(userToUpdate.getId());
+    public void update(Long id, User userToUpdate) {
+        userToUpdate.setPassword(bCryptPasswordEncoder.encode(Objects.requireNonNull(userRepository.findById(id).orElse(null)).getPassword()));
         userRepository.save(userToUpdate);
     }
 
@@ -57,7 +56,6 @@ public class UserServiceImpl implements UserService{
         userRepository.deleteById(id);
     }
 
-    @Transactional
     @Override
     public User findUserByEmail(String email) {
         return userRepository.findUserByEmail(email);
@@ -65,17 +63,11 @@ public class UserServiceImpl implements UserService{
 
 
     @Override
-    @Transactional(readOnly = true)
-    public UserDetails loadUserByUsername(String email) {
-        User user = userRepository.findUserByEmail(email);
-        if (user == null) throw new UsernameNotFoundException(email);
+    public UserDetails loadUserByUsername(String username) {
+        User user = userRepository.findByUsername(username);
+        if (user == null) throw new UsernameNotFoundException(username);
 
-        Set<GrantedAuthority> grantedAuthorities = new HashSet<>();
-        for (Role role : user.getRoles()){
-            grantedAuthorities.add(new SimpleGrantedAuthority(role.getAuthority()));
-        }
-
-        return new org.springframework.security.core.userdetails.User(user.getUsername(), user.getPassword(), grantedAuthorities);
+        return new org.springframework.security.core.userdetails.User(user.getUsername(), user.getPassword(), user.getAuthorities());
     }
 
 }

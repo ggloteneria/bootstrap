@@ -7,8 +7,7 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
-import org.thymeleaf.spring5.SpringTemplateEngine;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import ru.kata.spring.boot_security.demo.service.UserService;
 
 @Configuration
@@ -17,27 +16,24 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final UserService userService;
 
-//    private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
     private final SuccessUserHandler successUserHandler;
 
     @Autowired
-    public WebSecurityConfig(UserService userService, SuccessUserHandler successUserHandler) {
+    public WebSecurityConfig(UserService userService,  SuccessUserHandler successUserHandler) {
         this.userService = userService;
         this.successUserHandler = successUserHandler;
     }
 
-    @SuppressWarnings("deprecation")
-    @Bean
-    public static NoOpPasswordEncoder passwordEncoder() {
-        return (NoOpPasswordEncoder) NoOpPasswordEncoder.getInstance();
+    @Autowired
+    public BCryptPasswordEncoder bCryptPasswordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
     @Autowired
     public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
-        auth.userDetailsService(userService).passwordEncoder(passwordEncoder());
+        auth.userDetailsService(userService).passwordEncoder(bCryptPasswordEncoder());
     }
-
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
@@ -48,7 +44,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/user").hasAnyAuthority("ADMIN", "USER")
                 .anyRequest().authenticated()
                 .and()
-                .formLogin().loginPage("/login").successHandler(successUserHandler)
+                .formLogin().successHandler(successUserHandler)
                 .permitAll()
                 .and()
                 .logout()
