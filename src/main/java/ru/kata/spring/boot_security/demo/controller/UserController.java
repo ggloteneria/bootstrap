@@ -25,7 +25,7 @@ public class UserController {
     @GetMapping()
     public String showInfoAboutUser(@AuthenticationPrincipal UserDetails currentUser, Model model) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User user = userService.findUserByEmail(auth.getName());
+        User user = userService.findUserByUsername(auth.getName());
         model.addAttribute("user", user);
         model.addAttribute("currentUser", currentUser);
         model.addAttribute("roles", auth.getAuthorities());

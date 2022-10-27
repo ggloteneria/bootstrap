@@ -53,7 +53,7 @@ public class AdminController {
     public String editUser(@ModelAttribute("user") User user, @PathVariable("id") Long id, Model model) {
         userService.update(id, user);
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        User currentUser = userService.findUserByEmail(auth.getName());
+        User currentUser = userService.findUserByUsername(auth.getName());
         model.addAttribute("currentUser", currentUser);
         return "redirect:/admin/users";
     }
